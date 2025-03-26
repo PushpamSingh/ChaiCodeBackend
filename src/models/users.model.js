@@ -27,7 +27,6 @@ const userSchema=new mongoose.Schema({
     },
     coverImg:{
         type:String,//!cloudnary url
-        required:[true,"coverImg is required"],
     },
     password:{
         type:String,
@@ -39,14 +38,14 @@ const userSchema=new mongoose.Schema({
     },
     watchHistory:[
         {
-            videoID:mongoose.Types.ObjectId,
-            ref:'Video'
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"Video"
         }
     ]
 
 },{timestamps:true})
 userSchema.pre('save',async function(next){
-    const user=this.user;
+    const user=this;
     if(!this.isModified("password")) return next()
     try {
         const salt=await bcrypt.genSalt(10);
