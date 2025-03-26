@@ -3,6 +3,7 @@ import {User} from "../models/users.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {uploadonCloudinary} from "../utils/cloudinary.util.js"
 import {ApiResponce} from "../utils/ApiResponce.js"
+// import {genrateRefreshToken} from"../models/users.model.js"
 
 const registerUser=asyncHandler(async (req,res)=>{
     try {
@@ -22,10 +23,15 @@ const registerUser=asyncHandler(async (req,res)=>{
        //! check for image avatar,coverimg
        //! Upload img on cloudinary
         const avatarLocalPath=req.files?.avatar[0]?.path;
-        const coverImgLocalPath=req.files?.coverImg[0]?.path;
-
+        let coverImgLocalPath;
+        if(req.files && Array.isArray(req.files?.coverImg) && req.files?.coverImg.length>0){
+            coverImgLocalPath=req?.files?.coverImg[0]?.path;  
+        }else{
+            coverImgLocalPath=""
+        }
+        
         if(!avatarLocalPath){
-            throw new ApiError(400,"avatar is required")
+            throw new ApiError(400,"avatar is required heelo")
         }
 
         const avatar=await uploadonCloudinary(avatarLocalPath);
@@ -37,23 +43,27 @@ const registerUser=asyncHandler(async (req,res)=>{
 
 
        //! Create User object , Create entry in db
-       const user= User.create({
+       const user=await User.create({
         fullName,
         username:username.toLowerCase(),
         email,
         avatar:avatar.url,
         coverImg:coverImg.url || "",
         password,
-        refreshToken
        })
+       //? generate and save refereshtoken
+    user.refreshToken=await user.genrateRefreshToken();
+    user.save()
 
        //! remove password and refresh token from responce
-       const createdUser=await user.findById(user._id).select(
+       const createdUser=await User.findById(user._id).select(
         "-password -refreshToken"
        )
 
        //! check for the user creation 
+       
        if(!createdUser){
+           console.log(createdUser);
         throw new ApiError(500,"Something went wrong while registring the user")
        }
 
