@@ -5,6 +5,24 @@ import {uploadonCloudinary} from "../utils/cloudinary.util.js"
 import {ApiResponce} from "../utils/ApiResponce.js"
 // import {genrateRefreshToken} from"../models/users.model.js"
 
+const genrateAccessAndRefreshToken=async(userId)=>{
+    try {
+        const user=await User.findById(userId);
+        if(!user){
+            throw new ApiError(404,"User not found")
+        }
+
+        const AccessToken=await user.genrateAccessToken();
+        const RefreshToken=await user.genrateRefreshToken();
+
+        user.refreshToken=RefreshToken;
+        await user.save({validateBeforeSave:false})
+
+        return {AccessToken,RefreshToken};
+    } catch (error) {
+        throw new ApiError(500,"Internal Server Error !! Something went wrong while generating access or refresh token")
+    }
+}
 const registerUser=asyncHandler(async (req,res)=>{
     try {
        //! Get details from frontend 
@@ -41,7 +59,6 @@ const registerUser=asyncHandler(async (req,res)=>{
             throw new ApiError(400,"avatar is required")
         }
 
-
        //! Create User object , Create entry in db
        const user=await User.create({
         fullName,
@@ -63,7 +80,6 @@ const registerUser=asyncHandler(async (req,res)=>{
        //! check for the user creation 
        
        if(!createdUser){
-           console.log(createdUser);
         throw new ApiError(500,"Something went wrong while registring the user")
        }
 
@@ -80,24 +96,91 @@ const registerUser=asyncHandler(async (req,res)=>{
     }
 })
 
-const deleteUser=asyncHandler(async(req,res)=>{
-    try{
-        //! get the id from url parameter using req.params
-        const id=req.params.id;
-
-        //! find the user in User model using that id and delete
-        const user=await User.findByIdAndDelete(id);
-
-        //! send the responce to the user
-        res.status(200).json({
-            message:"user deleted",
-            user
+const LogInUser=asyncHandler(async(req,res)=>{
+    try {
+        //? Get data from req.body
+        //? Username or password based log in
+        //? check password
+        //? access and refresh token generate
+        //? send cookies
+    
+        const {username,email,password}=req.body;
+        if(!username || !email){
+            throw new ApiError(401,"Username or email are required")
+        }
+        const user = await User.findOne({
+            $or:[{username},{email}]
         })
-    }catch(error){
-        res.status(500).json({
-            message:`${error}`
-        })
+    
+        if(!user){
+            throw new ApiError(404,"user not existed")
+        }
+    
+        const isPasswordCheck=await user.comparePassword(user.password);
+    
+        if(!isPasswordCheck){
+            throw new ApiError(402,"Password is incorrect")
+        }
+    
+        const {AccessToken,RefreshToken}=await genrateAccessAndRefreshToken(user._id);
+
+        const loggedInUser= await User.findById(user._id).select(
+            "-password -refreshToken"
+        )
+
+        const options ={
+            httpOnly:true,
+            secure:true
+        }
+        return res
+        .status(201)
+        .cookie("AccessToken",AccessToken,options)
+        .cookie("RefreshToken",RefreshToken,options)
+        .json(
+            new ApiResponce(
+                200,
+            {
+                user:loggedInUser,AccessToken,RefreshToken
+            },
+            "User log in Succeessfuly"
+            )
+        )
+
+
+    
+    } catch (error) {
+        throw new ApiError(500,"Internal Server Error !! Something went wrong while log in")
+    }})
+
+
+const LogOutUser=asyncHandler(async(req,res)=>{
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set:{
+                    refreshToken:undefined
+                }
+            },
+            {
+                new:true
+            }
+        )
+
+    const options={
+        httpOnly:true,
+        secure:true
     }
+
+    return res.status(200)
+    .clearCookie("AccessToken",options)
+    .clearCookie("RefreshToken",options)
+    .json(
+        new ApiResponce(
+            300,
+            {},
+            "user Logged out"
+        )
+    )
 })
 
-export {registerUser,deleteUser}
+export {registerUser,LogInUser,LogOutUser}

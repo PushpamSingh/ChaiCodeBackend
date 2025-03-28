@@ -11,7 +11,7 @@ cloudinary.config({
 export const uploadonCloudinary=async(localFilePath)=>{
     try {
         if(!localFilePath){
-            return " ";
+            return "";
         } 
             
         
