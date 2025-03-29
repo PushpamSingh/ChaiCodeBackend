@@ -44,6 +44,8 @@ const registerUser=asyncHandler(async (req,res)=>{
        //! check for image avatar,coverimg
        //! Upload img on cloudinary
         const avatarLocalPath=req.files?.avatar[0]?.path;
+        // console.log("Avatar local path: ",req.files?.avatar);
+        
         let coverImgLocalPath;
         if(req.files && Array.isArray(req.files?.coverImg) && req.files?.coverImg.length>0){
             coverImgLocalPath=req?.files?.coverImg[0]?.path;  
@@ -57,6 +59,7 @@ const registerUser=asyncHandler(async (req,res)=>{
 
         const avatar=await uploadonCloudinary(avatarLocalPath);
         const coverImg=await uploadonCloudinary(coverImgLocalPath);
+        // console.log("Avatar: ",avatar);
 
         if(!avatar){
             throw new ApiError(400,"avatar is required")
@@ -158,7 +161,8 @@ const LogInUser=asyncHandler(async(req,res)=>{
         console.log("Error in login: ",error);
         
         throw new ApiError(500,"Internal Server Error !! Something went wrong while log in")
-    }})
+    }
+})
 
 
 const LogOutUser=asyncHandler(async(req,res)=>{
@@ -240,4 +244,173 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Internal server Error in refresh AccessToken")
     }
 })
-export {registerUser,LogInUser,LogOutUser,refreshAccessToken}
+
+const changeCurrentPassword=asyncHandler(async(req,res)=>{
+    try {
+        //? Get oldpassword newpassword from the user
+        const {oldPassword,newPassword}=req.body;
+
+        //? Validate both the fields
+        if(!(oldPassword || newPassword)){
+            throw new ApiError(401,"oldPassword and newPassword are required")
+        }
+
+        //?find the user with the help of req.user
+        const user=await User.findById(req.user?._id);
+        if(!user){
+            throw new ApiError(401,"Unauthorized user")
+        }
+
+        //?compare the oldPassword with database saved password
+        const isPasswordMatched=await user.comparePassword(oldPassword);
+        if(!isPasswordMatched){
+            throw new ApiError(404,"OldPassword is wrong can not able to update")
+        }
+
+        user.password=newPassword;
+        await user.save({validateBeforeSave:false});
+
+        return res.status(200)
+        .json(
+            new ApiResponce(200,{},"Password changed successfully")
+        )
+    } catch (error) {
+        throw new ApiError(500,"Internal server Error !! Something went wrong while changing password")
+    }
+})
+
+const getCurrentUser=asyncHandler(async(req,res)=>{
+    try {
+        //? Fetching current user from req.user
+        return res.status(200)
+        .json(
+            new ApiResponce(200,req.user,"Current user fetched successfuly")
+        )
+    } catch (error) {
+        throw new ApiError(500,"Internal server Error !! Something went wrong while Getting user")
+    }
+})
+
+const updateUserDetailes=asyncHandler(async(req,res)=>{
+    try {
+        //? get the detailes what to update
+        const {fullName,email}=req.body;
+        //? validate both the fields
+        if(!(fullName || email)){
+            throw new ApiError(401,"fullName and email are required")
+        }
+
+        const user=await User.findByIdAndUpdate(
+            req.user._id,
+            {
+               $set:{
+                fullName,
+                email
+               }
+            },
+            {
+                new:true
+            }
+        ).select("-password -refreshToken");
+
+        if(!user){
+            throw new ApiError(404,"User not found");
+        }
+        return res.status(200)
+        .json(
+            new ApiResponce(
+                200,
+                user,
+                "User updated successfuly"
+        )
+        )
+
+    } catch (error) {
+        throw new ApiError(500,"Internal server Error !! Something went wrong while Updating user")
+    }
+})
+
+const updateUserAvatar=asyncHandler(async(req,res)=>{
+    try {
+        //? get path of new Avatar
+        const avatarlocalPath=req.file?.path;
+
+        if(!avatarlocalPath){
+            throw new ApiError(401,"Avatar is required")
+        }
+        const avatar=await uploadonCloudinary(avatarLocalPath);
+         if(!avatar){
+            throw new ApiError(401,"Avatar cloudinary uploading problem")
+         }
+
+         const user=await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set:{
+                    avatar:avatar.url
+                }
+            },
+           {
+            new:true
+           }
+         ).select("-password -refreshToken")
+
+         return res.status(200)
+         .json(
+            new ApiResponce(200,user,"Avatar updated successfuly")
+         )
+    } catch (error) {
+        throw new ApiError(500,"Internal server Error !! Something went wrong while Updating Avatar user")
+    }
+})
+
+const updateUserCoverImg=asyncHandler(async(req,res)=>{
+    try {
+        //? get file path from the of new coverImg
+        let coverImgLocalPath;
+        if(req.file && req.file?.path){
+            coverImgLocalPath=req.file?.path;
+        }
+
+        //? upload on cloudinary
+        const coverImg=await uploadonCloudinary(coverImgLocalPath);
+       const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+           $set:{
+            coverImg:coverImg.url
+           }
+        },
+        {
+            new:true
+        }
+       ).select("-password -refreshToken");
+
+       return res.status(200)
+       .json(
+        new ApiResponce(
+            200,
+            {
+                user
+            },
+            "coverImg updated successfuly"
+        )
+       )
+        
+
+    } catch (error) {
+        throw new ApiError(500,"Internal server Error !! Something went wrong while Updating coverImg user")
+
+    }
+})
+export {
+    registerUser,
+    LogInUser,
+    LogOutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateUserDetailes,
+    updateUserAvatar,
+    updateUserCoverImg
+}
