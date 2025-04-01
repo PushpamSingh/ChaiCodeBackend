@@ -1,5 +1,15 @@
 import { Router } from "express";
-import {changeCurrentPassword, getCurrentUser, LogInUser, LogOutUser, refreshAccessToken, registerUser, updateUserAvatar, updateUserCoverImg, updateUserDetailes } from "../controllers/user.controller.js";
+import {changeCurrentPassword,
+        getCurrentUser, 
+        getUserChanelProfile, 
+        getWatchHistory, 
+        LogInUser, 
+        LogOutUser, 
+        refreshAccessToken, 
+        registerUser, 
+        updateUserAvatar, 
+        updateUserCoverImg, 
+        updateUserDetailes } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { VeryfyJWT } from "../middlewares/auth.middleware.js";
 
@@ -34,19 +44,16 @@ router.route("/getcurrentuser").get(VeryfyJWT,getCurrentUser)
 router.route("/updateuserdetailes").put(VeryfyJWT,updateUserDetailes)
 router.route("/updateuseravatar").put(
     VeryfyJWT,
-    upload.fields({
-        name:"avatar",
-        maxCount:1
-        }),
+    upload.single("avatar"),
     updateUserAvatar
 )
 
 router.route("/updateusercoverimage").put(
     VeryfyJWT,
-    upload.fields({
-        name:"coverImg",
-        maxCount:1
-    }),
+    upload.fields("coverImg"),
     updateUserCoverImg
 )
+
+router.route("/chanel/:username").get(getUserChanelProfile)
+router.route("/getwatchhistory").get(VeryfyJWT,getWatchHistory)
 export default router

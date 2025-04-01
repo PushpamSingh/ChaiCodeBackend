@@ -16,7 +16,7 @@ export const VeryfyJWT=asyncHandler(async(req,_,next)=>{
      
      const user= await User.findById(decodedToken?._id).select("-password -refreshToken")
      if(!user){
-         throw new ApiError(401,"Invalid Access Token")
+         throw new ApiError(401,"You are not logged in")
      }
      req.user=user;
      next();
