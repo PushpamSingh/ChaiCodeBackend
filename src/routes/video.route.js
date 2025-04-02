@@ -4,11 +4,10 @@ import { VeryfyJWT } from "../middlewares/auth.middleware.js"
 import { deleteVideo, getAllVideos, getVideoById, publishAVideo, togglePublishStatus, updateVideo } from "../controllers/video.controller.js";
 const router=Router();
 
-//? geting all video router
-router.route("/getallvideos").get(getAllVideos)
-router.route("/getvideobyid/:videoId").get(getVideoById)
 
 //! secure routes
+router.route("/getallvideos").get(VeryfyJWT,getAllVideos)
+router.route("/getvideobyid/:videoId").get(VeryfyJWT,getVideoById)
 router.route("/publishavideo").post(
     VeryfyJWT,
     upload.fields([
