@@ -50,7 +50,7 @@ router.route("/updateuseravatar").put(
 
 router.route("/updateusercoverimage").put(
     VeryfyJWT,
-    upload.fields("coverImg"),
+    upload.single("coverImg"),
     updateUserCoverImg
 )
 

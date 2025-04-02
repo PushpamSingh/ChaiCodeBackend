@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken"
 // import {genrateRefreshToken} from"../models/users.model.js"
 import dotenv from "dotenv"
 import mongoose from 'mongoose';
+import { deletefromcloudinary } from '../utils/deleteFromCoudinary.util.js';
 dotenv.config()
 
 const genrateAccessAndRefreshToken=async(userId)=>{
@@ -45,7 +46,7 @@ const registerUser=asyncHandler(async (req,res)=>{
        //! check for image avatar,coverimg
        //! Upload img on cloudinary
         const avatarLocalPath=req.files?.avatar[0]?.path;
-        console.log("Avatar local path: ",req.files?.avatar);
+        // console.log("Avatar local path: ",req.files?.avatar);
         
         let coverImgLocalPath;
         if(req.files && Array.isArray(req.files?.coverImg) && req.files?.coverImg.length>0){
@@ -60,7 +61,7 @@ const registerUser=asyncHandler(async (req,res)=>{
 
         const avatar=await uploadonCloudinary(avatarLocalPath);
         const coverImg=await uploadonCloudinary(coverImgLocalPath);
-        console.log("Avatar: ",avatar);
+        // console.log("Avatar: ",avatar);
 
         if(!avatar){
             throw new ApiError(400,"avatar is required")
@@ -205,7 +206,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
         const incomingRefreshToken=req.cookies?.RefreshToken || req.body.refreshToken;
 
         if(!incomingRefreshToken){
-            throw new ApiError(401,`Unauthorized request: ${incomingRefreshToken}`)
+            throw new ApiError(401,`Unauthorized request: ${incomingRefreshToken} you are not logged in`)
         }
         console.log(incomingRefreshToken);
         
@@ -335,11 +336,21 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
     try {
         //? get path of new Avatar
         const avatarlocalPath=req.file?.path;
-
+        
         if(!avatarlocalPath){
             throw new ApiError(401,"Avatar is required")
         }
-        const avatar=await uploadonCloudinary(avatarLocalPath);
+        
+        //? delete the old avatar from cloudinary
+        const avatarforDelete=await User.findById(req.user?._id)
+        const deletedAvatar=await deletefromcloudinary(avatarforDelete.avatar);
+        if(!deletedAvatar){
+            throw new ApiError(400,"Failed to update avatar")
+        }
+        // console.log("deletedAvtar: ",deletedAvatar);
+        const avatar=await uploadonCloudinary(avatarlocalPath);
+        // console.log("avaatar local path: ",req.file?.path);
+
          if(!avatar){
             throw new ApiError(401,"Avatar cloudinary uploading problem")
          }
@@ -361,6 +372,7 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
             new ApiResponce(200,user,"Avatar updated successfuly")
          )
     } catch (error) {
+        console.log("Error in avatar update:",error)
         throw new ApiError(500,"Internal server Error !! Something went wrong while Updating Avatar user")
     }
 })
@@ -372,6 +384,14 @@ const updateUserCoverImg=asyncHandler(async(req,res)=>{
         if(req.file && req.file?.path){
             coverImgLocalPath=req.file?.path;
         }
+        // console.log("coverImg local path: ",coverImgLocalPath);
+        //? delete the old avatar from cloudinary
+        const coverImgforDelete=await User.findById(req.user?._id)
+        const deletedcoverImg=await deletefromcloudinary(coverImgforDelete.coverImg);
+        // console.log("deleteCoverImg: ",deletedcoverImg);
+         if(!deletedcoverImg){
+             throw new ApiError(400,"Failed to update coverImg")
+         }
 
         //? upload on cloudinary
         const coverImg=await uploadonCloudinary(coverImgLocalPath);
@@ -400,6 +420,8 @@ const updateUserCoverImg=asyncHandler(async(req,res)=>{
         
 
     } catch (error) {
+        console.log("Error in update coverImg: ", error);
+        
         throw new ApiError(500,"Internal server Error !! Something went wrong while Updating coverImg user")
 
     }
@@ -497,7 +519,7 @@ const getWatchHistory=asyncHandler(async(req,res)=>{
                     from:"videos",
                     localField:"watchHistory",
                     foreignField:"_id",
-                    as:"Watch-History",
+                    as:"Watch_History",
                     pipeline:[
                        { $lookup:{
                             from:"users",
@@ -525,15 +547,17 @@ const getWatchHistory=asyncHandler(async(req,res)=>{
                 }
             }
         ])
-
+        
         if(!user?.length){
             throw new ApiError(404,"History Not found")
         }
         return res.status(200)
         .json(
-            new ApiResponce(200,user[0].Watch-History,"watch history fetched successfuly")
+            new ApiResponce(200,user[0].Watch_History,"watch history fetched successfuly")
         )
     } catch (error) {
+        console.log("Error in watch history: ",error);
+        
         throw new ApiError(500,"Internal server error !! Something went wrong while fetching watch history")
     }
 })

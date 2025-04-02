@@ -1,6 +1,6 @@
 import {Video} from "../models/video.model.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
-import {ApiError, APiError} from "../utils/ApiError.js";
+import {ApiError} from "../utils/ApiError.js";
 import {ApiResponce} from "../utils/ApiResponce.js";
 import {User} from "../models/users.model.js";
 import { uploadonCloudinary } from "../utils/cloudinary.util.js";
@@ -9,11 +9,16 @@ import { deletefromcloudinary } from "../utils/deleteFromCoudinary.util.js";
 const getAllVideos = asyncHandler(async (req, res) => {
         try {
             //? getting all query from req.query
-            const { page, limit, query, sortBy, sortType, userId } = req.query
+            
+            let { page, limit, query, sortBy, sortType, userId } = req.query
+            // console.log(("Helloworl"));
             //TODO: get all videos based on query, sort, pagination
             //? parse the page and the limit in int
             page = parseInt(page) || 1;
             limit = parseInt(limit) || 10;
+
+            // console.log("page: ",page," limit: ",limit);
+            
             
             //? calculate the skip for pagination
             const skip=(page-1)*10;
@@ -33,12 +38,14 @@ const getAllVideos = asyncHandler(async (req, res) => {
             }
 
             //?sort the data based on sortType
+            let sort={};
             if(sortBy){
                 sort[sortBy]=sortType==="desc"?-1:1;
             }else{
                 sort["createdAt"]=-1;
             }
-
+            // console.log("sort: ",sort);
+            
             //? fetch all the video on all query given above
             const videos=await Video.find(filter).sort(sort).skip(skip).limit(limit)
 
@@ -74,8 +81,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
             }
         
             //? get the video file and thumbnail path from req.files
-            const videoLocalfilepath=req.files?.video[0]?.path;
+            const videoLocalfilepath=req.files?.videoFile[0]?.path;
+            // console.log("Video Local path: ",videoLocalfilepath);
+            
             const thumbnailLocalfilepath=req.files?.thumbnail[0].path;
+            // console.log("thumbnail Local path: ",thumbnailLocalfilepath);
         
             if(!(videoLocalfilepath || thumbnailLocalfilepath)){
                 throw new ApiError(400,"Video or thumbnail not found")
@@ -84,6 +94,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
             //? upload on cloundinary 
             const videopath=await uploadonCloudinary(videoLocalfilepath);
             const thumbnailpath=await uploadonCloudinary(thumbnailLocalfilepath);
+            // console.log("VideoPath: ",videopath);
+            
         
             if(!(videopath || thumbnailpath)){
                 throw new ApiError(400,"Video or thumbnail are required")
@@ -122,7 +134,7 @@ const getVideoById = asyncHandler(async (req, res) => {
         //TODO: get video by id
         //? validate given id
         if(!videoId){
-            throw new APiError(400,"Videoid not found")
+            throw new ApiError(400,"Videoid not found")
         }
     
         //? find the video using video id
@@ -154,17 +166,27 @@ const updateVideo = asyncHandler(async (req, res) => {
             }
         
             //? get the videofile and thumbnail file from req.files and validate
-            const videoLocalPath=req.files?.video[0]?.path;
+            const videoLocalPath=req.files?.videoFile[0]?.path;
+            // console.log("Video for update: ",videoLocalPath);
+            
             const thumbnailLocalPath=req.files?.thumbnail[0].path;
+            // console.log("thumbnail for update: ",thumbnailLocalPath);
+
+
         
             if(!(videoLocalPath || thumbnailLocalPath)){
                 throw new ApiError(400,"video or thumbnails are required");
             }
         
             //? delete the old files from cloudinary before upload new
-            const video=await Video.findOne({videoId})
+            const video=await Video.findById(videoId)
+            console.log("video: ",video.videoFile);
+            
             const deletedvideo=await deletefromcloudinary(video.videoFile);
+            // console.log("deleted video responce: ",deletedvideo);
+            
             const deletedthumbnail=await deletefromcloudinary(video.thumbnail);
+            // console.log("deleted thumbnail responce: ",deletedthumbnail);
         
             if(!(deletedvideo || deletedthumbnail)){
                 throw new ApiError(400,"Failed to delete path");
@@ -200,6 +222,8 @@ const updateVideo = asyncHandler(async (req, res) => {
                 )
             )
         } catch (error) {
+            console.log("Error in updating video: ",error);
+            
             throw new ApiError(500,"Internal server error while updating video")
         }
 
@@ -213,13 +237,14 @@ const deleteVideo = asyncHandler(async (req, res) => {
  
      //? validate video id
      if(!videoId){
-         throw new ApiError(400,"Video id not found");
+       throw new ApiError(400,"Video id not found");
      }
      //? first delete the video from cludinary
-     const video=await Video.findOne({videoId});
+     const video=await Video.findById(videoId);
      const deletedVideo=await deletefromcloudinary(video.videoFile);
+     const deletethumbnail=await deletefromcloudinary(video.thumbnail);
  
-     if(!deletedVideo){
+     if(!(deletedVideo || deletethumbnail)){
          throw new ApiError(400,"Faild to delete video in deleteVideo")
      }
  
@@ -237,6 +262,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
          )
      )
    } catch (error) {
+    console.log("Error in deleting video: ",error);
+    
     throw new ApiError(500,"Internal server error while deleting video")
    }
 
@@ -250,7 +277,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
           throw new ApiError(400,"Video id not found");
       }
       //? find the video to toggle
-      const video=await Video.findOne({videoId});
+      const video=await Video.findOne({_id:videoId});
       if(!video){
           throw new ApiError(400,"video not found")
       }
@@ -266,6 +293,8 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
           )
       )
   } catch (error) {
+    console.log("Error in toggle isPublished: ",error);
+    
     throw new ApiError(500,"Internal server error while toggling video isPublished")
   }
 })
