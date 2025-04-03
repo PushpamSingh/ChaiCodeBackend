@@ -45,7 +45,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
                         views:1,
                         isPublished:1,
                         owner:{
-                            $first:'$VideosByOwner'
+                            $arrayElemAt: ["$videosByOwner",2]
                         }
                     }
                 },
@@ -101,7 +101,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
             //? upload on cloundinary 
             const videopath=await uploadonCloudinary(videoLocalfilepath);
             const thumbnailpath=await uploadonCloudinary(thumbnailLocalfilepath);
-            // console.log("VideoPath: ",videopath);
+            // console.log("VideoPath: ",videopath.duration);
             
         
             if(!(videopath || thumbnailpath)){
@@ -115,6 +115,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
                 title,
                 description,
                 owner:req.user?._id,
+                duration:videopath.duration
             })
             if(!video){
                 throw new ApiError(502,"Failed to upload video")
@@ -233,7 +234,8 @@ const updateVideo = asyncHandler(async (req, res) => {
                     title,
                     description,
                     videoFile:uploadedvideo.url,
-                    thumbnail:uploadthumbnail.url
+                    thumbnail:uploadthumbnail.url,
+                    duration:uploadedvideo.duration
                 }
             )
         
