@@ -14,12 +14,14 @@ const toggleVideoLike = asyncHandler(async(req, res) => {
        }
    
        //? find the like schema that has videoId and userId
+    //    console.log("videoid: ", videoId);
        const likevideo= await Like.findOne({video:videoId,likedBy:userId});
        if(!likevideo){
            const newLike=await Like.create({
                video:videoId,
                likedBy:userId
            });
+           
            if(!newLike){
                throw new ApiError(502,"Failed to like video")
            }
@@ -33,17 +35,10 @@ const toggleVideoLike = asyncHandler(async(req, res) => {
                )
            )
        }else{
-         const disLike=await Like.findOneAndUpdate(
+         const disLike=await Like.findOneAndDelete(
            {video:videoId,likedBy:userId},
-           {
-               $set:{
-                   video:null
-               }
-           },
-           {
-               new:true
-           }
-         )
+           {new:true}
+          )
          if(!disLike){
            throw new ApiError(502,"Failed to dislike video")
        }
@@ -94,11 +89,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
             )
         )
       }else{
-        const dislike=await Like.findOneAndUpdate(
+        const dislike=await Like.findOneAndDelete(
             {comment:commentId,likedBy:userId},
-            {$set:{comment:null}},
             {new:true}
-        )
+           )
         if(!dislike){
             throw new ApiError(502,"Failed to dislike comment");
         }
@@ -149,11 +143,10 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
              )
          )
        }else{
-         const dislike=await Like.findOneAndUpdate(
+         const dislike=await Like.findOneAndDelete(
              {tweet:tweetId,likedBy:userId},
-             {$set:{tweet:null}},
              {new:true}
-         )
+             )
          if(!dislike){
              throw new ApiError(502,"Failed to dislike tweet");
          }
@@ -187,7 +180,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         }
     
         //? find the all the document has userid
-        const likedVideo=await Like.find({likedBy:userId}).populate("video");
+        const likedVideo=await Like.find({likedBy:userId,video:{$ne:null}}).populate("video");
             if(!likedVideo){
                 throw new ApiError(404,"liked Video not found");
             }

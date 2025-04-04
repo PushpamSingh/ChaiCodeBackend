@@ -20,6 +20,8 @@ import tweetRoute from './routes/tweet.routes.js';
 import subscriptionroute from './routes/subscription.routes.js';
 import playlistroute from './routes/plalist.routes.js';
 import commentroute from './routes/comment.routes.js';
+import likeroute from './routes/likes.routes.js';
+import dashboardroute from './routes/dashboard.routes.js';
 
 //router declare
 app.use('/api/v1/user',userRoute);
@@ -28,3 +30,5 @@ app.use('/api/v1/tweet',tweetRoute);
 app.use('/api/v1/subscribe',subscriptionroute);
 app.use('/api/v1/playlist',playlistroute);
 app.use('/api/v1/comment',commentroute);
+app.use('/api/v1/like',likeroute);
+app.use('/api/v1/dashboard',dashboardroute);

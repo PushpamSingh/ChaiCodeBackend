@@ -150,6 +150,9 @@ const getVideoById = asyncHandler(async (req, res) => {
     
         //? find the video using video id
         const video = await Video.findById(videoId);
+        video.views=video.views++;
+        await video.save({validateBeforeSave:false})
+
         return res.status(200)
         .json(
             new ApiResponce(
