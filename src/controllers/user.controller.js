@@ -78,7 +78,7 @@ const registerUser=asyncHandler(async (req,res)=>{
        })
        //? generate and save refereshtoken
     user.refreshToken=await user.genrateRefreshToken();
-    user.save()
+    await user.save()
 
        //! remove password and refresh token from responce
        const createdUser=await User.findById(user._id).select(
