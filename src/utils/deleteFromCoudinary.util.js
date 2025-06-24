@@ -12,12 +12,12 @@ export const deletefromcloudinary=async(Fileurl)=>{
         if(!Fileurl){
             throw new ApiError(404,"File Url not found")
         }
-        console.log("FileUrl: ",Fileurl);
+        // console.log("FileUrl: ",Fileurl);
         
         const urlArr=Fileurl.split("/");
         const urlIdArr=urlArr[urlArr.length-1].split(".");
         const publicId=urlIdArr[0];
-        console.log("public id: ",publicId);
+        // console.log("public id: ",publicId);
         let resourceType='image';
         if(Fileurl.includes('/video/')){
             resourceType='video'

@@ -174,7 +174,7 @@ const LogOutUser=asyncHandler(async(req,res)=>{
               req.user._id,
               {
                   $set:{
-                    refreshToken:"undefined"
+                    refreshToken:null
                   }
               },
               {
@@ -208,7 +208,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
         if(!incomingRefreshToken){
             throw new ApiError(401,`Unauthorized request: ${incomingRefreshToken} you are not logged in`)
         }
-        console.log(incomingRefreshToken);
+        // console.log(incomingRefreshToken);
         
         const decodedToken=await jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
 
